@@ -1,0 +1,18 @@
+E/flutter ( 8582): #38     _DelayedData.perform (dart:async/stream_impl.dart:591:14)
+E/flutter ( 8582): #39     _StreamImplEvents.handleNext (dart:async/stream_impl.dart:706:11)
+E/flutter ( 8582): #40     _PendingEvents.schedule.<anonymous closure> (dart:async/stream_impl.dart:663:7)
+E/flutter ( 8582): #41     _rootRun (dart:async/zone.dart:1418:47)
+E/flutter ( 8582): #42     _CustomZone.run (dart:async/zone.dart:1328:19)
+E/flutter ( 8582): #43     _CustomZone.runGuarded (dart:async/zone.dart:1236:7)
+E/flutter ( 8582): #44     _CustomZone.bindCallbackGuarded.<anonymous closure> (dart:async/zone.dart:1276:23)
+E/flutter ( 8582): #45     _rootRun (dart:async/zone.dart:1426:13)
+E/flutter ( 8582): #46     _CustomZone.run (dart:async/zone.dart:1328:19)
+E/flutter ( 8582): #47     _CustomZone.runGuarded (dart:async/zone.dart:1236:7)
+E/flutter ( 8582): #48     _CustomZone.bindCallbackGuarded.<anonymous closure> (dart:async/zone.dart:1276:23)
+E/flutter ( 8582): #49     _microtaskLoop (dart:async/schedule_microtask.dart:40:21)
+E/flutter ( 8582): #50     _startMicrotaskLoop (dart:async/schedule_microtask.dart:49:5)
+E/flutter ( 8582):
+I/GED     ( 8582): ged_boost_gpu_freq, level 100, eOrigin 2, final_idx 27, oppidx_max 27, oppidx_min 0
+I/Process ( 8582): Sending signal. PID: 8582 SIG: 9
+Lost connection to device.
+Exited (sigterm)
