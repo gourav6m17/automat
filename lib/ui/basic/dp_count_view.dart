@@ -165,7 +165,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
           name: widget.device.name,
           rssi: widget.device.rssi,
           serviceData: widget.device.serviceData,
-          serviceUuids: widget.device.serviceUuids,
+          //serviceUuids: widget.device.serviceUuids,
         ),
       ),
     ]);

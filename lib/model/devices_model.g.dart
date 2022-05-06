@@ -84,12 +84,30 @@ class DiscoveredDeviceModelAdapter extends TypeAdapter<DiscoveredDeviceModel> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return DiscoveredDeviceModel();
+    return DiscoveredDeviceModel(
+      id: fields[0] as String?,
+      name: fields[1] as String?,
+      serviceData: (fields[2] as Map?)
+          ?.map((dynamic k, dynamic v) => MapEntry(k as Uuid, v as Uint8List)),
+      manufacturerData: fields[4] as Uint8List?,
+      rssi: fields[5] as int?,
+    );
   }
 
   @override
   void write(BinaryWriter writer, DiscoveredDeviceModel obj) {
-    writer.writeByte(0);
+    writer
+      ..writeByte(5)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.name)
+      ..writeByte(2)
+      ..write(obj.serviceData)
+      ..writeByte(4)
+      ..write(obj.manufacturerData)
+      ..writeByte(5)
+      ..write(obj.rssi);
   }
 
   @override

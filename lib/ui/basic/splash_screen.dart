@@ -32,6 +32,7 @@ class _SplashScreenState extends State<SplashScreen> {
     request();
 
     Future.delayed(const Duration(seconds: 1), () {
+      log("ENter in future");
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => Home(),

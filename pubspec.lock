@@ -289,7 +289,7 @@ packages:
     source: hosted
     version: "5.0.2"
   flutter_spinkit:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_spinkit
       url: "https://pub.dartlang.org"
@@ -871,5 +871,5 @@ packages:
     source: hosted
     version: "3.1.0"
 sdks:
-  dart: ">=2.16.1 <3.0.0"
+  dart: ">=2.16.0 <3.0.0"
   flutter: ">=2.10.0"

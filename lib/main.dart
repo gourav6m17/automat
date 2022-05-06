@@ -30,7 +30,7 @@ import 'package:location/location.dart' as loc;
 import 'package:flutter_blue/flutter_blue.dart' as blue;
 
 const _themeColor = Colors.lightGreen;
-
+late final Box box;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final _bleLogger = BleLogger();
@@ -59,7 +59,7 @@ Future<void> main() async {
     Hive.init(appDocumentDirectory!.path);
   }
   await Hive.initFlutter(appDocumentDirectory!.path);
-  log("----app paths---" + appDocumentDirectory.path);
+  log("----app paths---" + appDocumentDirectory.path.toString());
   Hive.registerAdapter(DevicesModelDBAdapter());
   Hive.registerAdapter(DeviceListModelDBAdapter());
   Hive.registerAdapter(DiscoveredDeviceModelAdapter());

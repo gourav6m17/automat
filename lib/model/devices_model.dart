@@ -53,17 +53,21 @@ class DeviceListModelDB extends HiveObject {
 @HiveType(typeId: 3)
 class DiscoveredDeviceModel {
   /// The unique identifier of the device.
+  @HiveField(0)
   String? id;
+  @HiveField(1)
   String? name;
+  @HiveField(2)
   Map<Uuid, Uint8List>? serviceData;
 
   /// Advertised services
-
-  List<Uuid>? serviceUuids;
+  // @HiveField(3)
+  // List<Uuid>? serviceUuids;
 
   /// Manufacturer specific data. The first 2 bytes are the Company Identifier Codes.
-
+  @HiveField(4)
   Uint8List? manufacturerData;
+  @HiveField(5)
   int? rssi;
 
   DiscoveredDeviceModel({
@@ -72,6 +76,6 @@ class DiscoveredDeviceModel {
     this.serviceData,
     this.manufacturerData,
     this.rssi,
-    this.serviceUuids,
+    //this.serviceUuids,
   });
 }

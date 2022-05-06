@@ -5,13 +5,16 @@ import 'package:automat/plugins/reactive_ble/utils.dart';
 import 'package:automat/ui/basic/dp_count.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 // import 'package:flutter_ble_lib_ios_15/flutter_ble_lib.dart' ;
 // import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:get/get.dart';
 import 'package:nordic_dfu/nordic_dfu.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import "package:automat/plugins/reactive_ble/ble/ble_device_connector.dart";
+import 'dart:developer' as log;
+import '../../services/automat_services.dart';
 
 class AddDevice extends StatelessWidget {
   const AddDevice({Key? key}) : super(key: key);
@@ -53,8 +56,16 @@ class _DeviceListState extends State<_DeviceList> {
   bool dfuRunning = false;
   int? dfuRunningInx;
   FlutterReactiveBle flutterReactiveBle = FlutterReactiveBle();
+  DiscoveredDevice? discoveredDevice;
 
   final passwordController = TextEditingController();
+
+  bool showLoad = false;
+  final automatServices = AutomatServices();
+
+  String deviceId = '';
+
+  String passwordValue = '';
 
   // BleManager bleManager = BleManager();
 
@@ -79,11 +90,16 @@ class _DeviceListState extends State<_DeviceList> {
     _startScanning();
     //startScan();
     super.initState();
+    //getConnectedDevices!.ConnectedDeviceList();
+    // Timer.periodic(Duration(seconds: 5), (v) {
+    //   getConnectedDevices!.ConnectedDeviceList();
+    // });
   }
 
   @override
   void dispose() {
     widget.stopScan();
+
     super.dispose();
   }
 
@@ -115,36 +131,20 @@ class _DeviceListState extends State<_DeviceList> {
     }
   }
 
-  // void startScan() async {
-  //   scanResults.clear();
-  //   scanSubscription?.cancel();
-  //   await flutterBlue.stopScan();
-  //   setState(() {
-  //     //scanResults.clear();
-  //     // scanSubscription = flutterBlue.scan().listen(
-  //     //   (scanResult) {
-  //     //     log(scanResult.device.id.id);
-  //     //     setState(() {
-  //     //       /// add result to results if not added
-  //     //       scanResults.add(scanResult);
-  //     //       log(scanResults.length.toString());
-  //     //     });
-
-  //     //     if (scanResults.firstWhere(
-  //     //           (ele) => ele.device.id == scanResult.device.id,
-  //     //         ) !=
-  //     //         null) {
-  //     //       return;
-  //     //     }
-  //     //   },
-  //     // );
-  //   });
-  // }
-
   void stopScan() {
     scanSubscription?.cancel();
     scanSubscription = null;
     setState(() => scanSubscription = null);
+  }
+
+  readPassword() {
+    automatServices.readPassword(deviceId).listen((event) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        setState(() {
+          passwordValue = event;
+        });
+      });
+    });
   }
 
   _showDialog(
@@ -154,74 +154,158 @@ class _DeviceListState extends State<_DeviceList> {
     return showDialog(
         context: context,
         builder: (context) {
-          return AlertDialog(
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Text(
-                      "password".tr,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      deviceName,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
+          return StatefulBuilder(builder: (context, setS) {
+            return AlertDialog(
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Text(
+                        "password".tr,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        deviceName,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Divider(),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TextField(
-                    controller: passwordController,
-                    decoration: const InputDecoration(
-                        isDense: true,
-                        border: InputBorder.none,
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: kGreyColor)),
-                        focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: kGreyColor)))),
-              ),
-              const SizedBox(
-                height: 5,
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                          style: ButtonStyle(
-                              backgroundColor:
-                                  MaterialStateProperty.resolveWith(
-                                      (states) => kPrimaryColor)),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: Text("cancel".tr)),
-                    ),
-                    const Spacer(),
-                    Expanded(
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                      controller: passwordController,
+                      decoration: const InputDecoration(
+                          isDense: true,
+                          border: InputBorder.none,
+                          enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: kGreyColor)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: kGreyColor)))),
+                ),
+                const SizedBox(
+                  height: 5,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
                         child: ElevatedButton(
                             style: ButtonStyle(
                                 backgroundColor:
                                     MaterialStateProperty.resolveWith(
                                         (states) => kPrimaryColor)),
-                            onPressed: () {},
-                            child: Text("pair".tr)))
-                  ],
+                            onPressed: () async {
+                              // await disconnect;
+                              Navigator.of(context).pop();
+                            },
+                            child: Text("cancel".tr)),
+                      ),
+                      const Spacer(),
+                      Expanded(
+                          child: ElevatedButton(
+                              style: ButtonStyle(
+                                  backgroundColor:
+                                      MaterialStateProperty.resolveWith(
+                                          (states) => kPrimaryColor)),
+                              onPressed: () async {
+                                //EasyLoading.show(status: "verifying...");
+                                setS(() {
+                                  showLoad = true;
+                                });
+
+                                List<int> password = [];
+                                for (int i = 0;
+                                    i < passwordController.text.trim().length;
+                                    i++) {
+                                  password.add(passwordController.text
+                                      .trim()
+                                      .codeUnitAt(i));
+                                  print("pas---------" + password.toString());
+                                }
+                                await automatServices.writePassword(
+                                    deviceId, password);
+                                await Future.delayed(
+                                  const Duration(seconds: 2),
+                                  () async {
+                                    if (passwordValue == "1") {
+                                      log.log("save -------- enter");
+                                      WidgetsFlutterBinding.ensureInitialized()
+                                          .addPostFrameCallback((timeStamp) {
+                                        setState(() {
+                                          showLoad = false;
+                                        });
+                                      });
+                                      // EasyLoading.dismiss();
+
+                                      Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                              builder: (_) => DpCount(
+                                                  device: discoveredDevice!)));
+
+                                      // Future.delayed(Duration(seconds: 1),
+                                      //     () async {
+                                      //   await
+
+                                      // });
+                                      log.log("out taa-------- ");
+                                    } else {
+                                      // await disconnect;
+                                      EasyLoading.dismiss();
+                                      log.log("wrong--------");
+                                      showDialog(
+                                          context: context,
+                                          builder: (_) => AlertDialog(
+                                                actions: [
+                                                  Center(
+                                                      child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: Text(
+                                                      "wrong_password".tr,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  )),
+                                                  ElevatedButton(
+                                                      style: ButtonStyle(
+                                                          backgroundColor:
+                                                              MaterialStateProperty
+                                                                  .resolveWith(
+                                                                      (states) =>
+                                                                          kPrimaryColor)),
+                                                      onPressed: () async {
+                                                        Navigator.of(_).pop();
+                                                      },
+                                                      child: Text("ok".tr))
+                                                ],
+                                              ));
+                                    }
+                                  },
+                                );
+                              },
+                              child: Text("pair".tr)))
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
+              ],
+            );
+          });
         });
   }
 
   @override
   Widget build(BuildContext context) {
+    flutterReactiveBle.connectedDeviceStream.listen((event) {
+      log.log(event.connectionState.name);
+    });
     //log(widget.scannerState.scanIsInProgress.toString());
     //debugPrint(widget.scannerState.discoveredDevices.toList().toString());
     double height = MediaQuery.of(context).size.height;
@@ -229,175 +313,255 @@ class _DeviceListState extends State<_DeviceList> {
     final isScanning = scanSubscription != null;
     final hasDevice = scanResults.length > 0;
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: SafeArea(
-        child: Scaffold(
-          bottomNavigationBar: Container(
-            height: height * 0.09,
-            decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-                boxShadow: [
-                  BoxShadow(color: Colors.grey.shade500, blurRadius: 1)
-                ]),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Center(
-                    child: SizedBox(
-                      height: height * 0.06,
-                      width: width * 0.9,
-                      child: ElevatedButton(
-                          style: ButtonStyle(
-                              shape: MaterialStateProperty.all<
-                                      RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10))),
-                              backgroundColor:
-                                  MaterialStateProperty.resolveWith(
-                                      (states) => kPrimaryColor)),
-                          onPressed: () {
-                            _startScanning();
-                            //startScan();
-                            // Navigator.of(context).push(MaterialPageRoute(
-                            //     builder: (_) => const AddDevice()));
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                CupertinoIcons.refresh,
-                                color: Colors.white,
-                              ),
-                              Text(
-                                'scan_again'.tr,
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 18),
-                              ),
-                            ],
-                          )),
+    return FlutterEasyLoading(
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: SafeArea(
+          child: Scaffold(
+              bottomNavigationBar: Container(
+                height: height * 0.09,
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          body: Column(
-            children: [
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Container(
-                          height: 40,
-                          width: 40,
-                          decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: kWhiteColor,
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.grey,
-                                    blurRadius: 1,
-                                    offset: Offset(0, 1))
-                              ]),
-                          child: IconButton(
-                              tooltip: "Back",
+                    boxShadow: [
+                      BoxShadow(color: Colors.grey.shade500, blurRadius: 1)
+                    ]),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Center(
+                        child: SizedBox(
+                          height: height * 0.06,
+                          width: width * 0.9,
+                          child: ElevatedButton(
+                              style: ButtonStyle(
+                                  shape: MaterialStateProperty.all<
+                                          RoundedRectangleBorder>(
+                                      RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10))),
+                                  backgroundColor:
+                                      MaterialStateProperty.resolveWith(
+                                          (states) => kPrimaryColor)),
                               onPressed: () {
-                                Navigator.of(context).pop();
+                                _startScanning();
+                                //startScan();
+                                // Navigator.of(context).push(MaterialPageRoute(
+                                //     builder: (_) => const AddDevice()));
                               },
-                              icon: const Icon(
-                                CupertinoIcons.back,
-                                color: kGreenColor,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    CupertinoIcons.refresh,
+                                    color: Colors.white,
+                                  ),
+                                  Text(
+                                    'scan_again'.tr,
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 18),
+                                  ),
+                                ],
                               )),
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "scanning".tr,
-                            style: const TextStyle(
-                              fontSize: 20,
-                            ),
-                          ),
-                          Text(
-                            widget.scannerState.discoveredDevices.length
-                                    .toString() +
-                                " " +
-                                "device_found".tr,
-                            style: const TextStyle(),
-                          ),
-                        ],
-                      )
-                    ],
-                  ),
-                  const Divider(),
-                ],
+                    ),
+                  ],
+                ),
               ),
-              Flexible(
-                child: widget.scannerState.discoveredDevices.isEmpty
-                    ? const Text("No Device Here!")
-                    : ListView(
-                        children: widget.scannerState.discoveredDevices
-                            .map(
-                              (device) => GestureDetector(
-                                onTap: () {
-                                  widget.stopScan();
-
-                                  Navigator.of(context).push(MaterialPageRoute(
-                                      builder: (_) => DpCount(device: device)));
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Container(
-                                    height: height * 0.1,
-                                    width: width,
-                                    decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: const BorderRadius.all(
-                                            Radius.circular(10)),
-                                        boxShadow: [
-                                          BoxShadow(
-                                              color: Colors.grey.shade100,
-                                              blurRadius: 4,
-                                              offset: Offset.zero)
-                                        ]),
-                                    child: Row(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(4),
-                                          child: Image.asset(filterMachine),
-                                        ),
-                                        Expanded(
-                                          flex: 1,
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(16),
-                                            child: Text(
-                                              device.name +
-                                                  device.rssi.toString(),
-                                              style:
-                                                  const TextStyle(fontSize: 14),
-                                            ),
-                                          ),
-                                        ),
-                                        // const Icon(Icons.more_vert_sharp),
-                                      ],
-                                    ),
-                                  ),
+              body:
+                  // Consumer<BleDeviceConnector>(
+                  //     builder: (_, deviceConnector, child) {
+                  //   return
+                  Stack(
+                children: [
+                  Column(
+                    children: [
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Container(
+                                  height: 40,
+                                  width: 40,
+                                  decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: kWhiteColor,
+                                      boxShadow: [
+                                        BoxShadow(
+                                            color: Colors.grey,
+                                            blurRadius: 1,
+                                            offset: Offset(0, 1))
+                                      ]),
+                                  child: IconButton(
+                                      tooltip: "Back",
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      icon: const Icon(
+                                        CupertinoIcons.back,
+                                        color: kGreenColor,
+                                      )),
                                 ),
                               ),
-                            )
-                            .toList()),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "scanning".tr,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                  Text(
+                                    widget.scannerState.discoveredDevices.length
+                                            .toString() +
+                                        " " +
+                                        "device_found".tr,
+                                    style: const TextStyle(),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
+                          const Divider(),
+                        ],
+                      ),
+                      Flexible(
+                        child: widget.scannerState.discoveredDevices.isEmpty
+                            ? const Text("No Device Here!")
+                            : ListView(
+                                children: widget.scannerState.discoveredDevices
+                                    .map((device) =>
+                                            // StreamProvider<String>(
+                                            //     create: (_) => automatServices
+                                            //         .readPassword(device.id),
+                                            //     initialData: "0",
+                                            //     builder: (context, snapshot) {
+                                            //       return Consumer<String>(builder:
+                                            //           (context, value, child) {
+                                            //         WidgetsBinding.instance!
+                                            //             .addPostFrameCallback(
+                                            //                 (timeStamp) {
+                                            //           setState(() {
+                                            //             passwordValue = value;
+                                            //           });
+                                            //         });
+                                            //         return
+                                            GestureDetector(
+                                                onTap: () async {
+                                                  widget.stopScan();
+
+                                                  flutterReactiveBle
+                                                      .connectToDevice(
+                                                          id: device.id);
+                                                  //connector.connect(device.id);
+                                                  setState(() {
+                                                    deviceId = device.id;
+                                                    discoveredDevice = device;
+                                                  });
+                                                  readPassword();
+                                                  // await deviceConnector
+                                                  //     .disconnect(deviceId);
+                                                  _showDialog(
+                                                    context,
+                                                    device.name,
+                                                  );
+                                                  // Navigator.of(context).push(MaterialPageRoute(
+                                                  //     builder: (_) => DpCount(device: device)));
+                                                },
+                                                child:
+                                                    // StreamProvider<String>(
+                                                    //     create: (_) => automatServices
+                                                    //         .readPassword(device.id),
+                                                    //     initialData: "0",
+                                                    //     builder: (context, snapshot) {
+                                                    //       return Consumer<String>(
+                                                    //         builder: (context, value,
+                                                    //             child) {
+                                                    //           WidgetsBinding.instance!
+                                                    //               .addPostFrameCallback(
+                                                    //                   (timeStamp) {
+                                                    //             setState(() {
+                                                    //               passwordValue =
+                                                    //                   value;
+                                                    //             });
+                                                    //           });
+                                                    //           return
+                                                    Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8.0),
+                                                  child: Container(
+                                                    height: height * 0.1,
+                                                    width: width,
+                                                    decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius:
+                                                            const BorderRadius
+                                                                    .all(
+                                                                Radius.circular(
+                                                                    10)),
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                              color: Colors.grey
+                                                                  .shade100,
+                                                              blurRadius: 4,
+                                                              offset:
+                                                                  Offset.zero)
+                                                        ]),
+                                                    child: Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(4),
+                                                          child: Image.asset(
+                                                              filterMachine),
+                                                        ),
+                                                        Expanded(
+                                                          flex: 1,
+                                                          child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(16),
+                                                            child: Text(
+                                                              device.name +
+                                                                  device.rssi
+                                                                      .toString(),
+                                                              style:
+                                                                  const TextStyle(
+                                                                      fontSize:
+                                                                          14),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        // const Icon(Icons.more_vert_sharp),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                )
+                                                //     },
+                                                //   );
+                                                // }),
+                                                )
+
+                                        //   },);
+                                        // }),
+                                        )
+                                    .toList()),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+              //}),
               ),
-            ],
-          ),
         ),
       ),
     );

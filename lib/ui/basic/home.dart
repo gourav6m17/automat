@@ -1,4 +1,5 @@
 import 'dart:developer' as log;
+import 'package:automat/main.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as ble;
 
 import 'package:automat/Constant/const.dart';
@@ -40,9 +41,13 @@ class _HomeState extends State<Home> {
   }
 
   Box? automatDevicesDb;
-  // openBox() async {
-  //   automatDevicesDb = await Hive.openBox(dbName);
-  // }
+  openBox() async {
+    final db = await Hive.openBox<DevicesModelDB>(dbName);
+    setState(() {
+      automatDevicesDb = db;
+    });
+  }
+
   Future<void> customEnableBT(BuildContext context) async {
     String dialogTitle = "Hey! Please give me permission to use Bluetooth!";
     bool displayDialogContent = true;
@@ -146,6 +151,7 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
+    //log.log(box.getAt(0)!.deviceList[0].discoveredDevice.name.toString());
     getLocationStatus();
     // openBox();
     checkPerm();
@@ -267,6 +273,15 @@ class _HomeState extends State<Home> {
           body: ValueListenableBuilder(
               valueListenable: Hive.box<DevicesModelDB>(dbName).listenable(),
               builder: (context, Box<DevicesModelDB> box, _) {
+                log.log(box.length.toString());
+                box.toMap().forEach((key, value) {
+                  log.log("--key---- $key");
+                  value.deviceList.forEach((element) {
+                    log.log("---value-------" +
+                        element.discoveredDevice.id.toString());
+                  });
+                });
+
                 //log.log(box.getAt(0)!.deviceList[0].discoveredDevice.name);
 
                 // Consumer<DiscoveredDevice>(
@@ -276,180 +291,194 @@ class _HomeState extends State<Home> {
                 return box.isEmpty
                     ? Container()
                     : SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: GridView.count(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 10,
-                            shrinkWrap: true,
+                        child: GridView.count(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 10,
+                          shrinkWrap: true,
 
-                            //childAspectRatio: 0.9,
-                            children: List.generate(
-                              1,
-                              (index) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(2.0),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      Navigator.of(context).push(
-                                          MaterialPageRoute(
+                          //childAspectRatio: 0.9,
+                          children: List.generate(
+                            box.length,
+                            (index) {
+                              return GridView.builder(
+                                  gridDelegate:
+                                      SliverGridDelegateWithMaxCrossAxisExtent(
+                                          maxCrossAxisExtent: 2),
+                                  itemBuilder: (context, i) {
+                                    return Padding(
+                                      padding: const EdgeInsets.all(2.0),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          Navigator.of(context).push(MaterialPageRoute(
                                               builder: (_) => DpCountView(
-                                                  device: DiscoveredDevice(
-                                                      id: box
-                                                          .getAt(index)!
-                                                          .deviceList[index]
-                                                          .discoveredDevice
-                                                          .id!,
-                                                      manufacturerData: box
-                                                          .getAt(index)!
-                                                          .deviceList[index]
-                                                          .discoveredDevice
-                                                          .manufacturerData!,
-                                                      name: box
-                                                          .getAt(index)!
-                                                          .deviceList[index]
-                                                          .discoveredDevice
-                                                          .name!,
-                                                      rssi: box
-                                                          .getAt(index)!
-                                                          .deviceList[index]
-                                                          .discoveredDevice
-                                                          .rssi!,
-                                                      serviceData: box
-                                                          .getAt(index)!
-                                                          .deviceList[index]
-                                                          .discoveredDevice
-                                                          .serviceData!,
-                                                      serviceUuids: box
-                                                          .getAt(index)!
-                                                          .deviceList[index]
-                                                          .discoveredDevice
-                                                          .serviceUuids!))));
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: const BorderRadius.all(
-                                              Radius.circular(10)),
-                                          boxShadow: [
-                                            BoxShadow(
-                                                color: Colors.grey.shade400,
-                                                blurRadius: 2,
-                                                spreadRadius: 0.5,
-                                                offset: Offset.zero)
-                                          ]),
-                                      child: Stack(
-                                        children: [
-                                          Column(
+                                                      device: DiscoveredDevice(
+                                                          id: box
+                                                              .getAt(index)!
+                                                              .deviceList[index]
+                                                              .discoveredDevice
+                                                              .id!,
+                                                          manufacturerData: box
+                                                              .getAt(index)!
+                                                              .deviceList[index]
+                                                              .discoveredDevice
+                                                              .manufacturerData!,
+                                                          name: box
+                                                              .getAt(index)!
+                                                              .deviceList[index]
+                                                              .discoveredDevice
+                                                              .name!,
+                                                          rssi: box
+                                                              .getAt(index)!
+                                                              .deviceList[index]
+                                                              .discoveredDevice
+                                                              .rssi!,
+                                                          serviceData: box
+                                                              .getAt(index)!
+                                                              .deviceList[index]
+                                                              .discoveredDevice
+                                                              .serviceData!,
+                                                          serviceUuids: [
+                                                        Uuid.parse(
+                                                            "f3641523-00b0-4240-ba50-05ca45bf8abc")
+                                                      ]))));
+                                        },
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius:
+                                                  const BorderRadius.all(
+                                                      Radius.circular(10)),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                    color: Colors.grey.shade400,
+                                                    blurRadius: 2,
+                                                    spreadRadius: 0.5,
+                                                    offset: Offset.zero)
+                                              ]),
+                                          child: Stack(
                                             children: [
-                                              Expanded(
-                                                flex: 3,
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  child: Image.asset(
-                                                      'assets/logo/filtermachine.png'),
+                                              Column(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 3,
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              4),
+                                                      child: Image.asset(
+                                                          'assets/logo/filtermachine.png'),
+                                                    ),
+                                                  ),
+                                                  Expanded(
+                                                    flex: 2,
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              4),
+                                                      child: Row(
+                                                        children: [
+                                                          Flexible(
+                                                            child: Text(
+                                                              box
+                                                                  .getAt(index)!
+                                                                  .deviceList[
+                                                                      index]
+                                                                  .discoveredDevice
+                                                                  .name!,
+                                                              //'Automate devices',
+                                                              softWrap: true,
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      height *
+                                                                          0.016,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .fade,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
+                                                            ),
+                                                          ),
+                                                          // const Spacer(),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              // CircleAvatar(
+                                              //     radius: 16,
+                                              //     child: Icon(Icons.notifications_active)),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.all(4.0),
+                                                child: Align(
+                                                  alignment: Alignment.topRight,
+                                                  child: PopupMenuButton(
+                                                    itemBuilder: (context) => [
+                                                      PopupMenuItem(
+                                                        child: Text(
+                                                          "change_name".tr,
+                                                          style: const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                        // value: 1,
+                                                      ),
+                                                      PopupMenuItem(
+                                                        child: Text(
+                                                          "change_password".tr,
+                                                          style: const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                        // value: 2,
+                                                      ),
+                                                      PopupMenuItem(
+                                                        child: Text(
+                                                          "remove".tr,
+                                                          style: const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                        // value: 3,
+                                                      ),
+                                                    ],
+                                                    child: const Icon(
+                                                      Icons.more_vert_sharp,
+                                                      color: kBlackColor,
+                                                      size: 28,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  child: Row(
-                                                    children: [
-                                                      Text(
-                                                        box
-                                                            .getAt(index)!
-                                                            .deviceList[index]
-                                                            .discoveredDevice
-                                                            .name!,
-                                                        //'Automate devices',
-                                                        softWrap: true,
-                                                        style: TextStyle(
-                                                            fontSize:
-                                                                height * 0.016,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .fade,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                      // const Spacer(),
-                                                    ],
-                                                  ),
+                                              const Padding(
+                                                padding: EdgeInsets.only(
+                                                    left: 4,
+                                                    right: 0.0,
+                                                    top: 4),
+                                                child: CircleAvatar(
+                                                  radius: 6,
+                                                  backgroundColor: Colors.red,
                                                 ),
                                               ),
                                             ],
                                           ),
-                                          // CircleAvatar(
-                                          //     radius: 16,
-                                          //     child: Icon(Icons.notifications_active)),
-                                          Padding(
-                                            padding: const EdgeInsets.all(4.0),
-                                            child: Align(
-                                              alignment: Alignment.topRight,
-                                              child: PopupMenuButton(
-                                                itemBuilder: (context) => [
-                                                  PopupMenuItem(
-                                                    child: Text(
-                                                      "change_name".tr,
-                                                      style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                    ),
-                                                    // value: 1,
-                                                  ),
-                                                  PopupMenuItem(
-                                                    child: Text(
-                                                      "change_password".tr,
-                                                      style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                    ),
-                                                    // value: 2,
-                                                  ),
-                                                  PopupMenuItem(
-                                                    child: Text(
-                                                      "remove".tr,
-                                                      style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                    ),
-                                                    // value: 3,
-                                                  ),
-                                                ],
-                                                child: const Icon(
-                                                  Icons.more_vert_sharp,
-                                                  color: kBlackColor,
-                                                  size: 28,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          const Padding(
-                                            padding: EdgeInsets.only(
-                                                left: 4, right: 0.0, top: 4),
-                                            child: CircleAvatar(
-                                              radius: 6,
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          ),
-                                        ],
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                                    );
+                                  });
+                            },
                           ),
                         ),
-                        //   );
-                        // },
                       );
               })),
+
+      // })),
     );
   }
 }
@@ -459,7 +488,7 @@ class CustomDrawer extends StatelessWidget {
     Key? key,
   }) : super(key: key);
   void _launchURL(String url) async {
-    if (!await launch(url)) throw 'Could not launch $url';
+    if (!await launchUrl(Uri.parse(url))) throw 'Could not launch $url';
   }
 
   @override

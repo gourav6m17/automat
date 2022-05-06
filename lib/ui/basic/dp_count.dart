@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:automat/Constant/const.dart';
 import 'package:automat/Constant/service_ids.dart';
 import 'package:automat/filter_configuration.dart';
@@ -7,7 +5,6 @@ import 'package:automat/model/devices_model.dart';
 import 'package:automat/plugins/reactive_ble/ble/ble_device_connector.dart';
 import 'package:automat/plugins/reactive_ble/ble/ble_logger.dart';
 import 'package:automat/plugins/reactive_ble/ui/device_detail/device_interaction_tab.dart';
-import 'package:automat/plugins/reactive_ble/utils.dart';
 import 'package:automat/plugins/src/radial_gauge/annotation/gauge_annotation.dart';
 import 'package:automat/plugins/src/radial_gauge/axis/radial_axis.dart';
 import 'package:automat/plugins/src/radial_gauge/gauge/radial_gauge.dart';
@@ -19,7 +16,6 @@ import 'package:automat/plugins/src/radial_gauge/title/radial_title.dart';
 import 'package:automat/plugins/src/radial_gauge/utils/enum.dart';
 import 'package:automat/services/automat_services.dart';
 import 'package:automat/ui/add_device/add_device.dart';
-import 'package:automat/ui/basic/history_screen.dart';
 import 'package:automat/ui/basic/home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -130,6 +126,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
   List<String> minuteFromInterval = [];
   List<String> minuteFromDuration = [];
   List<String> secondsFromDuration = [];
+  final technicianPassword = TextEditingController();
 
   bool? showDpOnly;
 
@@ -137,7 +134,12 @@ class _DeviceDetailState extends State<_DeviceDetail> {
 
   final flutterReactiveBle = FlutterReactiveBle();
 
+  bool isLoading = false;
+  bool showPasswordRequired = false;
+
   List<int> list = [];
+
+  String passwordValue = '';
 
   List<int> getTime() {
     List<int> time = [];
@@ -157,6 +159,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
 
   addDeviceToDb() async {
     final box = Hive.box<DevicesModelDB>('automatDevices');
+    log.log(widget.device.toString());
 
     DevicesModelDB? devicesModelDB = DevicesModelDB(deviceList: [
       DeviceListModelDB(
@@ -166,12 +169,13 @@ class _DeviceDetailState extends State<_DeviceDetail> {
           name: widget.device.name,
           rssi: widget.device.rssi,
           serviceData: widget.device.serviceData,
-          serviceUuids: widget.device.serviceUuids,
+          //serviceUuids: widget.device.serviceUuids,
         ),
       ),
     ]);
 
     final rs = await box.add(devicesModelDB);
+
     final r = box.toMap();
     log.log("--------${rs.toString()}--------" + r.toString());
   }
@@ -234,7 +238,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
   _showResetDialog(BuildContext context) {
     return showDialog(
         context: context,
-        builder: (context) {
+        builder: (_) {
           return AlertDialog(
             actions: [
               Padding(
@@ -263,7 +267,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
                                   MaterialStateProperty.resolveWith(
                                       (states) => kWhiteColor)),
                           onPressed: () {
-                            Navigator.of(context).pop();
+                            Navigator.of(_).pop();
                           },
                           child: Text(
                             "no".tr,
@@ -278,13 +282,105 @@ class _DeviceDetailState extends State<_DeviceDetail> {
                                     MaterialStateProperty.resolveWith(
                                         (states) => kPrimaryColor)),
                             onPressed: () async {
-                              EasyLoading.show(
-                                  status: 'apply'.tr,
-                                  dismissOnTap: true,
-                                  maskType: EasyLoadingMaskType.black);
-                              await automatServices
-                                  .writeReset(widget.device.id);
-                              Navigator.of(context).pop();
+                              // EasyLoading.show(
+                              //     status: 'apply'.tr,
+                              //     dismissOnTap: true,
+                              //     maskType: EasyLoadingMaskType.black);
+
+                              Navigator.of(_).pop();
+                              showDialog(
+                                  context: context,
+                                  builder: (_) => ShowPopUp(
+                                      showPasswordRequired:
+                                          showPasswordRequired,
+                                      technicianPassword: technicianPassword,
+                                      function: () async {
+                                        List<int> password = [];
+                                        for (int i = 0;
+                                            i <
+                                                technicianPassword.text
+                                                    .trim()
+                                                    .length;
+                                            i++) {
+                                          password.add(technicianPassword.text
+                                              .trim()
+                                              .codeUnitAt(i));
+                                          print("pas---------" +
+                                              password.toString());
+                                        }
+
+                                        await automatServices.writePassword(
+                                            widget.device.id, password);
+                                        await Future.delayed(
+                                          const Duration(seconds: 2),
+                                          () async {
+                                            if (passwordValue == "1") {
+                                              log.log("save -------- enter");
+                                              WidgetsFlutterBinding
+                                                      .ensureInitialized()
+                                                  .addPostFrameCallback(
+                                                      (timeStamp) {
+                                                setState(() {
+                                                  isLoading = false;
+                                                });
+                                              });
+                                              await automatServices
+                                                  .writeReset(widget.device.id)
+                                                  .whenComplete(() =>
+                                                      Navigator.of(_,
+                                                              rootNavigator:
+                                                                  true)
+                                                          .pop());
+
+                                              // Future.delayed(Duration(seconds: 1),
+                                              //     () async {
+                                              //   await
+
+                                              // });
+                                              log.log("out taa-------- ");
+                                            } else {
+                                              log.log("wrong--------");
+                                              showDialog(
+                                                  context: context,
+                                                  builder: (_) => AlertDialog(
+                                                        actions: [
+                                                          Center(
+                                                              child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(8.0),
+                                                            child: Text(
+                                                              "wrong_password"
+                                                                  .tr,
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                          )),
+                                                          ElevatedButton(
+                                                              style: ButtonStyle(
+                                                                  backgroundColor:
+                                                                      MaterialStateProperty.resolveWith(
+                                                                          (states) =>
+                                                                              kPrimaryColor)),
+                                                              onPressed: () {
+                                                                Navigator.of(_)
+                                                                    .pop();
+                                                              },
+                                                              child:
+                                                                  Text("ok".tr))
+                                                        ],
+                                                      ));
+                                            }
+                                          },
+                                        );
+                                      },
+                                      isLoading: isLoading,
+                                      c: _));
+
                               //await EasyLoading.dismiss();
                             },
                             child: Text("yes".tr)))
@@ -326,7 +422,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
   final automatServices = AutomatServices();
   Future<bool> _willPopCallback() async {
     Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (_) => Home()));
+        .pushReplacement(MaterialPageRoute(builder: (_) => const Home()));
     return true; // return true if the route to be popped
   }
 
@@ -368,7 +464,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
                       //         .toString());
 
                       log.log(discoveredServiceList.toList().toString());
-                      addDeviceToDb();
+                      // addDeviceToDb();
                       // Navigator.of(context).push(
                       //     MaterialPageRoute(builder: (_) => const HistoryScreen()));
                     },
@@ -387,8 +483,9 @@ class _DeviceDetailState extends State<_DeviceDetail> {
                 icon: const Icon(Icons.arrow_back_ios),
                 tooltip: "Back",
                 onPressed: () {
+                  log.log("pressed");
                   Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => Home()));
+                      MaterialPageRoute(builder: (_) => const Home()));
                 },
               ),
               actions: [
@@ -586,7 +683,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
                                                                 child: Text(
                                                                   'flushing_in_dp_&_time_mode'
                                                                       .tr,
-                                                                  style: TextStyle(
+                                                                  style: const TextStyle(
                                                                       color:
                                                                           kWhiteColor,
                                                                       fontSize:
@@ -743,7 +840,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
                                           updateShouldNotify: (_, __) => true,
                                           child: Consumer<String>(
                                               builder: (context, value, child) {
-                                            if (value.split("").isNotEmpty) {
+                                            if (value.isNotEmpty) {
                                               final v = value.split('');
                                               final minutes = v.getRange(
                                                   v.length - 2, v.length);
@@ -822,7 +919,7 @@ class _DeviceDetailState extends State<_DeviceDetail> {
                                               builder: (context, value, child) {
                                             WidgetsBinding.instance!
                                                 .addPostFrameCallback((_) {});
-                                            if (value.split("").isNotEmpty) {
+                                            if (value.isNotEmpty) {
                                               final v = value.split('');
 
                                               final seconds = v.getRange(
@@ -1041,41 +1138,60 @@ class _DeviceDetailState extends State<_DeviceDetail> {
                         //         Consumer<String>(builder: (context, value, child) {
                         //       //log.log("flu-------" + value);
                         //       return
-                        Column(
-                          children: [
-                            SizedBox(
-                              height: height * 0.08,
-                              child: ElevatedButton(
-                                style: ButtonStyle(
-                                    backgroundColor:
-                                        MaterialStateProperty.resolveWith(
-                                            (states) => kWhiteColor)),
-                                onPressed: () {
-                                  if (widget.viewModel.connectionStatus.name ==
-                                      "connected") {
-                                    _showResetDialog(context);
-                                  } else {
-                                    EasyLoading.showToast(
-                                        "Device is not connected",
-                                        duration: Duration(seconds: 5));
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
-                                      content: Text("Device is not connected"),
-                                    ));
-                                  }
-                                },
-                                child: const Icon(
-                                  Icons.restore,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 5,
-                            ),
-                            Text("reset".tr)
-                          ],
-                        ),
+                        StreamProvider<String>(
+                            create: (_) =>
+                                automatServices.readPassword(widget.device.id),
+                            initialData: "0",
+                            builder: (context, snapshot) {
+                              return Consumer<String>(
+                                  builder: (context, value, child) {
+                                WidgetsBinding.instance!
+                                    .addPostFrameCallback((_) {
+                                  setState(() {
+                                    passwordValue = value;
+                                  });
+                                });
+                                return Column(
+                                  children: [
+                                    SizedBox(
+                                      height: height * 0.08,
+                                      child: ElevatedButton(
+                                        style: ButtonStyle(
+                                            backgroundColor:
+                                                MaterialStateProperty
+                                                    .resolveWith((states) =>
+                                                        kWhiteColor)),
+                                        onPressed: () {
+                                          if (widget.viewModel.connectionStatus
+                                                  .name ==
+                                              "connected") {
+                                            _showResetDialog(context);
+                                          } else {
+                                            EasyLoading.showToast(
+                                                "Device is not connected",
+                                                duration:
+                                                    const Duration(seconds: 5));
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  "Device is not connected"),
+                                            ));
+                                          }
+                                        },
+                                        child: const Icon(
+                                          Icons.restore,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                      height: 5,
+                                    ),
+                                    Text("reset".tr)
+                                  ],
+                                );
+                              });
+                            }),
                         // })),
                         StreamProvider<String>(
                             create: (_) => automatServices
